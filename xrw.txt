@@ -1,0 +1,610 @@
+
+
+
+
+
+drop table wyx_1001_arpu;
+create table wyx_1001_arpu as select * from sjy.ft_mid_user_daily where sum_date=to_char(sysdate-1,'yyyymmdd')
+ and to_char(join_date,'yyyymm')in(to_char(sysdate,'yyyymm')) and join_date<sysdate and user_status<30 and is_mac_card=0;
+alter table wyx_1001_arpu rename column create_time to px_time;
+create index iwyx_1001_arpu on wyx_1001_arpu(user_id);
+create index iwyx_1001_arpu11 on wyx_1001_arpu(brand_id);
+create index iwyx_1001_arpu2 on wyx_1001_arpu(msisdn);
+create index iwyx_1001_arpu3 on wyx_1001_arpu(join_channel);
+create index iwyx_1001_arpu4 on wyx_1001_arpu(cus_id);
+create index iwyx_1001_arpu7 on wyx_1001_arpu(home_town);
+                     -----长汀统计月新入网用户表
+alter table wyx_1001_arpu add name varchar2(1000);
+update wyx_1001_arpu a set name=(select max(name) from sjy.ng_product_def where product_id=a.brand_id);
+commit;
+create table linshia as select *　from sjy.tb_csv_sales_points_detail where 
+business_id in (999,852,639)
+and register_month in(to_char(sysdate,'yyyymm'))
+and change_inure_date<sysdate and CHANGE_EXPIRE_DATE>sysdate 
+and user_msisdn in(select msisdn from wyx_1001_arpu);
+
+create table linshi as select * from
+(select user_id,user_msisdn,business_id,staff_msisdn,org_id,home_code,user_home_code,register_month,home_county,register_date,create_oper_id,change_inure_Date,change_expire_Date,
+  row_number()over(partition by user_id,register_month,business_id order by register_date desc) paixu from linshia) where paixu=1;---------------------------剔除取消登记再登记数据
+create index ilinshi on linshi(user_id,user_msisdn);
+create index ilinshi1 on linshi(user_msisdn);
+create index ilinshi2 on linshi(staff_msisdn);
+create index ilinshi3 on linshi(org_id);
+
+------------------------营销登记时间，机构号等，djtime 登记时间,org_id 登记机构号,staff_msisdn 登记号码,
+alter table wyx_1001_arpu add (djtime varchar2(1000),org_id number(15),staff_msisdn number,djtime1 date);
+
+update wyx_1001_arpu a set (djtime,org_id,staff_msisdn,djtime1)=(select to_char(register_date,'yyyymmdd'),org_id,staff_msisdn,djtime1 from linshi 
+    where user_msisdn=a.msisdn and to_char(a.join_date,'yyyymm')=register_month and business_id=999);/*and to_char(a.inure_time,'yyyymm')=register_month) ----取多个月时加;*/
+
+alter table wyx_1001_arpu add (djtime852 varchar2(1000),org_id852 number(15),staff_msisdn852 number,djtime8521 date);
+update wyx_1001_arpu a set (djtime852,org_id852,staff_msisdn852,djtime1)=(select to_char(register_date,'yyyymmdd'),org_id,staff_msisdn,djtime8521  from linshi 
+    where user_msisdn=a.msisdn and to_char(a.join_date,'yyyymm')=register_month and business_id=852);
+    
+    
+alter table wyx_1001_arpu add (djtime639 varchar2(1000),org_id639 number(15),staff_msisdn639 number,djtime6391 date);
+update wyx_1001_arpu a set (djtime639,org_id639,staff_msisdn639,djtime1)=(select to_char(register_date,'yyyymmdd'),org_id,staff_msisdn,djtime6391  from linshi 
+    where user_msisdn=a.msisdn and to_char(a.join_date,'yyyymm')=register_month and business_id=639);
+
+
+drop table linshia;
+drop table linshi;
+
+commit;
+
+
+-------------------------渠道名称 org_name 渠道名称,
+create table linshi as select * from sjy.tb_reg_org where home_area=597 and change_inure_date<sysdate and change_expire_Date>sysdate and org_id in(select org_id from wyx_1001_arpu);
+create index ilinshi on linshi(org_id);
+alter table wyx_1001_arpu add (org_name varchar2(1000));
+update wyx_1001_arpu a set org_name=(select org_name from linshi where org_id=a.org_id );
+commit;
+drop table linshi;
+-------------------------------------------------
+
+
+------------------------归属乡镇及乡镇片区   call_town_desc 归属乡镇,region_desc 归属片区,
+
+ALTER TABLE wyx_1001_arpu ADD (region_desc VARCHAR2(1000),call_town_desc VARCHAR2(1000));
+create table linshi as select * from sjy.dim_home_town;
+create index ilinshi on linshi(call_town);
+update wyx_1001_arpu a
+set (call_town_desc,region_desc)=(select call_town_desc,region_desc from  linshi where a.home_town=CALL_TOWN);
+drop table linshi;
+commit;
+----------------------------行政村 country_code 行政村编码,country_name 行政村,
+--create table xzc as select distinct(country_code),country_name,country_type,village_code,village_name,village_type,area_code,area_name from sjy.CFG_MKT_CM_AREA_BIZ_DAILY 
+--create index ixzc on xzc(country_code);
+--create index ixzc1 on xzc(village_code);
+
+create table linshi as select  * from sjy.ft_mid_user_town_daily where  sum_Date=to_char(sysdate-1,'yyyymmdd');
+create index ilinshi on linshi(user_id);
+alter table wyx_1001_arpu add (country_name varchar2(100),country_code number(30));
+
+update wyx_1001_arpu a set country_code=(select home_country from linshi where a.user_id=user_id);
+update wyx_1001_arpu a set country_name=(select max(country_name) from xzc where a.country_code=country_code);
+select * from xzc where country_code in (select country_code from xzc group by country_code having  count(country_code)>1);
+drop table linshi;
+--------------------------------------------------------
+
+delete from wyx_1001_arpu where name like '%临时%';  
+delete from wyx_1001_arpu where name like '%物联网%';  
+-------------------------------------套餐费
+create table tc storage(initial 10m)as
+select product_id,basic_fee,product_name from sjy.ft_mid_product_info_daily
+where sum_date=to_char(sysdate-2,'yyyymmdd') and product_type=1003;
+create index i_tc on tc(product_id);
+----针对套餐费进行修正
+update tc a set a.basic_fee=39000 where product_id in(201003010,201003006,201003007,30052007);
+update tc a set a.basic_fee=38000 where product_id=201004002;
+update tc a set a.basic_fee=88000 where product_id in(30070704,30070903,30070804,30059508,30058800,30059806);
+update tc a set a.basic_fee=128000 where product_id in(30070805,30070705,30070904,30059509,30059516);
+update tc a set a.basic_fee=188000 where product_id in(30070806,30070706);
+update tc a set a.basic_fee=139000 where product_id=30072303;---和家庭
+update tc a set a.basic_fee=279000 where product_id=30072305;
+update tc a set a.basic_fee=99000 where product_id=30072302;
+update tc a set a.basic_fee=169000 where product_id=30072304;
+update tc a set a.basic_fee=69000 where product_id=30072301;
+commit;
+----------------------------是否58以上套餐 sf38 是否38以上套餐,sf58 是否58以上套餐,sf88 是否88以上套餐,basic_fee 基础套餐费,
+alter table wyx_1001_arpu add (sf58 number(10),sf38 number(10),basic_fee number(10),sf88 number(10));
+
+update  wyx_1001_arpu a set (basic_fee)=(select basic_fee/1000 from tc where product_id=a.brand_id);
+alter table wyx_1001_arpu add jf number(15);
+-----update  wyx_1001_arpu a set jf=(select jf from xrwjf where brand_id=a.brand_id);
+update wyx_1001_arpu a set sf38=1 where a.basic_fee>=38;
+update wyx_1001_arpu a set sf58=1 where a.basic_fee>=58;
+update wyx_1001_arpu a set sf88=1 where a.basic_fee>=88;
+
+
+drop table tc;
+
+
+
+
+
+
+
+-----------------------------当月是否4G客户daily  sf4G 是否4G客户,jf 新入网积分，
+create table linshi as select * from sjy.ft_mid_lte_dev_analy_daily where sum_date=to_char(sysdate-2,'yyyymmdd') and is_4g_user=1 and user_id in (select user_id from wyx_1001_arpu);
+create index ilinshi on linshi(user_id);
+alter table wyx_1001_arpu add sf4G number;
+update wyx_1001_arpu a set sf4G=1 where user_id in (select user_id from linshi);
+drop table linshi;
+/*select * from tc where name like '新飞享%'
+insert into tc values (30072905,'新飞享18套餐（2017版）',0,0,0);
+insert into tc values(30072906,'新飞享38套餐（2017版）',1,0,0);
+insert into tc values(30072907,'新飞享88套餐（2017版）',1,1,1);*/
+
+----------------------------------------------------pq 渠道归属片区,sfzdqd 是否重点渠道,sflsqd 是否连锁渠道
+alter table wyx_1001_arpu add (pq varchar2(100),sfzdqd number(5),sflsqd number(5));
+--update  wyx_1001_arpu a set (pq,sflsqd,sfzdqd)=(select pq,sflsqd,sfzdqd from ctqd where org_id=a.org_id);
+alter table wyx_1001_arpu add (sfzd number(5));
+--update  wyx_1001_arpu a set sfzd=(select sflsqd+sfzdqd from ctqd where org_id=a.org_id);
+
+----------------------------------------------------批销渠道 pxqd
+alter table wyx_1001_arpu add (pxqd varchar2(1000));
+create table linshi as select * from sjy.tb_reg_org where home_area=597 and change_inure_date<sysdate and change_expire_Date>sysdate and org_id in(select join_channel from wyx_1001_arpu);
+create index ilinshi on linshi(org_id);
+update wyx_1001_arpu a set pxqd=(select org_name from linshi where org_id=a.join_channel );
+commit;
+drop table linshi;
+
+------------------------------------SFbxl 是否领取定向流量,
+
+
+create table linshi as select user_id,product_id from sjy.user_product
+where product_id in (30075006,
+30075004,
+30075005,
+30072701,
+30072702,
+30073107,
+30073108,
+30073109,
+30073110,
+30073111,
+30078001,
+30075003,
+1000620001,
+1000620002,
+1000620003,
+1000620004,
+1000620005,
+1000620006
+) and to_char(expire_time,'yyyymm')>to_char(sysdate,'yyyymm')+1;
+create index ilinshi on linshi(user_id);------------数据业务临时表
+alter table wyx_1001_arpu add (sfbxl number(5),sfbxljbb number(5),sfbxlkxb number(5));
+update wyx_1001_arpu a set sfbxl=1 where a.user_id in (select user_id from linshi);
+update wyx_1001_arpu a set sfbxljbb=1 where a.user_id in (select user_id from linshi where product_id in (30075006,30075004,30075005,30072701,30072702,30073107,30073108,
+30073109,30073110,30073111,30078001,30075003));
+update wyx_1001_arpu a set sfbxlkxb=1 where a.user_id in (select user_id from linshi where product_id in (1000620001,1000620002,1000620003,1000620004,1000620005,1000620006));
+
+drop table linshi;
+-------------------------------------------------------------------------------
+
+--------------当夜是否办理宽带 sfkd 是否宽带,
+
+create table linshi as select * from sjy.broadband_users where to_char(create_time,'yyyymm')=to_char(sysdate,'yyyymm');
+create index ilinshi on linshi(user_name);
+create index ilinshi1 on linshi(user_id);
+create index ilinshi2 on linshi(payment_user_id);
+
+alter table wyx_1001_arpu add sfkd number(15);
+update wyx_1001_arpu a set sfkd=1 where user_id in (select payment_user_id from linshi);
+alter table wyx_1001_arpu add create_time varchar2(1000);----账号建立时间
+update wyx_1001_arpu a set create_time=(select to_char(max(create_time),'yyyymm') from linshi where payment_user_id=a.user_id);
+
+drop table linshi;
+/*-----------------当前宽带可选包办理情况 kd_product_id 当前宽带可选包编码,kd_product_name 当前宽带可选包,kd_product_ktsj 当前宽带可选包开通时间,kd_product_sxsj 当前宽带可选包生效时间,kd_product_dqsj 当前宽带可选包失效时间,
+alter table wyx_1001_arpu add (kd_product_id number,kd_product_name varchar2(100),kd_product_ktsj varchar2(1000),kd_product_sxsj varchar2(1000),kd_product_dqsj varchar2(1000));
+create index iwyx_1001_arpua on wyx_1001_arpu(kdid);
+
+create table linshi as select * from sjy.user_product where product_type=1004 and  status=0 and expire_time>sysdate and user_id in (select kdid from wyx_1001_arpu );
+create index ilinshi on linshi(user_id);
+update wyx_1001_arpu a set kd_product_id=(select product_id from linshi where product_type=1004 and  user_id=a.kdid and inure_time<sysdate );
+update wyx_1001_arpu a set kd_product_ktsj=(select to_char(create_time,'yyyymmdd') from linshi where product_type=1004 and  user_id=a.kdid and inure_time<sysdate);
+update wyx_1001_arpu a set kd_product_sxsj=(select to_char(inure_time,'yyyymmdd') from linshi where product_type=1004 and  user_id=a.kdid and inure_time<sysdate);
+update wyx_1001_arpu a set kd_product_dqsj=(select to_char(expire_time,'yyyymmdd') from linshi where product_type=1004 and  user_id=a.kdid and inure_time<sysdate);
+update wyx_1001_arpu a set kd_product_name=(select name from to_char(sysdate,'yyyymm') where product_id=a.kd_product_id);
+*/
+
+
+-----------------------------------------------------------------------------------
+create table linshi as select user_id,pkg_option_id from sjy.Ft_mid_package_option_daily
+where pkg_option_id in (9020171740,120300001021,120000100501) and expire_date>sysdate and to_char(create_Date,'yyyymm')=to_char(sysdate,'yyyymm') and sum_Date=to_char(sysdate-1,'yyyymmdd');
+create index ilinshi on linshi(user_id);------------数据业务临时表
+alter table wyx_1001_arpu add (sfldtx number(5),sfcy number(5),sfcl number(5),sfmgth number(5));
+update wyx_1001_arpu a set sfldtx=1 where a.user_id in (select user_id from linshi where pkg_option_id=9020171740 );
+update wyx_1001_arpu a set sfcy=1 where a.user_id in (select user_id from linshi where pkg_option_id=120300001021 );
+update wyx_1001_arpu a set sfcl=1 where a.user_id in (select user_id from linshi where pkg_option_id=120000100501 );
+
+create table linshia as select *  from sjy.his_h_user_bonus_deal where sale_id in (79010586
+) order by create_time desc;
+create index ilinshia on linshia(user_id);------------数据业务临时表
+update wyx_1001_arpu a set sfmgth=1 where a.user_id in (select user_id from linshia where sale_id=79010586);
+
+
+drop table linshia;
+drop table linshi;
+
+--------------------------------------------------------------------------------是否家庭网
+
+create table linshi as select * from sjy.Ft_mid_package_option_daily
+where pkg_option_id in (37001003,37007001,37011001,37011002,37001005) and expire_date>sysdate and to_char(create_Date,'yyyymm')=to_char(sysdate,'yyyymm')
+ and sum_Date=to_char(sysdate-1,'yyyymmdd');
+create index ilinshi on linshi(user_id);------------数据业务临时表
+alter table wyx_1001_arpu add (sfjtw number(5));
+update wyx_1001_arpu a set sfjtw=1 where a.user_id in (select user_id from linshi);
+
+drop table linshi;
+-------------------------------------------------------------------------------- sfdxll 是否定向流量,
+alter table wyx_1001_arpu add (sfdxll number(5));
+create table linshia as select *  from sjy.tb_ser_user_bonus_deal_his where sale_id in (79015126,
+79015122,
+79015123,
+79015125,
+79015120,
+79015121,
+79015718,
+79015719,
+79015722,
+79015723,
+79015720,
+79015721,
+79015724,
+79015725
+) and to_char(create_date,'yyyymm')=to_char(sysdate,'yyyymm') and change_expire_date>sysdate
+and cancel_operator is null;
+create index ilinshia on linshia(user_id);------------数据业务临时表
+update wyx_1001_arpu a set sfdxll=1 where a.user_id in (select user_id from linshia);
+
+drop table linshia;
+-----------------------------------------------------------------------------------------
+
+
+
+--------------------------------付费相关  sfbff 是否被付费,amount_limited 付费金额,ffms 付费号码,
+alter　table wyx_1001_arpu add sfbff number;
+update wyx_1001_arpu a set sfbff=1 where user_id in(select user_id from sjy.genbill_relation where end_date>sysdate);
+commit;----付费关系定制
+
+alter　table wyx_1001_arpu add amount_limited number; ---被付费金额
+create table linshi as select * from sjy.genbill_relation  where user_id in (select user_id from wyx_1001_arpu);
+create index linshi1 on linshi(user_id);
+update wyx_1001_arpu a set amount_limited=(select round(sum(amount_limited/1000),2) from linshi where end_date>sysdate and user_id=a.user_id);
+commit;
+alter　table wyx_1001_arpu add payment_user_id number;----付费user_id
+update wyx_1001_arpu a set payment_user_id=(select max(payment_user_id) from linshi where end_date>sysdate and user_id=a.user_id);
+commit;
+select * from linshi a where user_id in (select user_id from linshi where end_date>sysdate group by user_id having count(user_id)>1); --查重，一般都有重复;
+alter table wyx_1001_arpu add ffms number;              --------付费msisdn
+update wyx_1001_arpu a set ffms=(select msisdn from sjy.users where user_id=a.payment_user_id);
+drop table linshi;
+commit;
+
+alter table wyx_1001_arpu add (qdpq varchar2(100),wg varchar2(100));
+/*update wyx_1001_arpu a set (qdpq,wg)=(select pq,wg from ctqd1 where org_id=a.org_id);*/
+
+
+SELECT msisdn 号码,decode(user_status,'0','正常','4','停机保号','5','欠费停机','8','强制停机','9','报停又欠费','10','单停','11','报停又单停',
+'24','申请预销户','25','欠费预销户','26','报停预销户','28','其它强制预销户','44','申请用户彻底销户','45','欠费彻底销户',
+'46','报停彻底销户','47','彻底销户','48','其它强制彻底销户','51','预开通','52','携号转移预销户','99','其他',user_status) 号码状态,
+decode(home_county,701,'新罗',702,'漳平',703,'永定',704,'上杭',705,'武平',707,'连城',706,'长汀',home_county) 归属,to_char(join_date,'yyyymmdd') 开打时间,
+brand_id 套餐编码,name 套餐 ,call_town_desc 归属乡镇,region_desc 归属片区,
+djtime 登记时间,org_id 登记机构号,staff_msisdn 登记号码,org_name 渠道名称,
+sf4G 是否4G客户,sf58 是否58以上套餐,jf 新入网积分,djtime852 登记852,sfkd 是否不限量,sfbxljbb 是否不限量基本包,sfbxlkxb 是否不限量可选包,
+sfldtx 是否来电提醒,sfcy 是否彩印,sfcl 是否彩铃,sfmgth 是否咪咕特会,join_channel 批销渠道编码,pxqd 批销渠道,sfjtw 是否家庭网,sfdxll 是否定向流量,join_time 开打时间,djtime1 新入网登记时间date,
+sf88 是否88以上套餐,basic_fee 基础套餐费,country_code 行政村编码,country_name 行政村,djtime639 登记时间639,sfbff 是否被付费,amount_limited 付费金额,ffms 付费号码
+from wyx_1001_arpu where home_county=706;
+ 
+SELECT msisdn 号码,decode(user_status,'0','正常','4','停机保号','5','欠费停机','8','强制停机','9','报停又欠费','10','单停','11','报停又单停',
+'24','申请预销户','25','欠费预销户','26','报停预销户','28','其它强制预销户','44','申请用户彻底销户','45','欠费彻底销户',
+'46','报停彻底销户','47','彻底销户','48','其它强制彻底销户','51','预开通','52','携号转移预销户','99','其他',user_status) 号码状态,
+decode(home_county,701,'新罗',702,'漳平',703,'永定',704,'上杭',705,'武平',707,'连城',706,'长汀',home_county) 归属,to_char(join_date,'yyyymmdd') 开打时间,
+brand_id 套餐编码,name 套餐 ,call_town_desc 归属乡镇,region_desc 归属片区,
+djtime 登记时间,org_id 登记机构号,staff_msisdn 登记号码,org_name 渠道名称,
+sf4G 是否4G客户,sf38 是否38以上套餐,sf58 是否58以上套餐,jf 新入网积分,
+pq 渠道归属片区,sfzdqd 是否重点渠道,sflsqd 是否连锁渠道,sfzd 重点渠道,join_channel 批销渠道编码,pxqd 批销渠道,djtime852 登记时间,org_id852 登记机构号,staff_msisdn852 登记号码,
+sfkd 是否不限量,sfbxljbb 是否不限量基本包,sfbxlkxb 是否不限量可选包,
+sfldtx 是否来电提醒,sfcy 是否彩印,sfcl 是否彩铃,sfmgth 是否咪咕特会,qdpq 片区,wg 网格,to_char(join_date,'yyyymm') 开打月份,sfjtw 是否家庭网,sfdxll 是否定向流量,
+join_time 开打时间,djtime1 新入网登记时间date,sf88 是否88以上套餐,basic_fee 基础套餐费,country_code 行政村编码,country_name 行政村,djtime639 登记时间639,sfbff 是否被付费,amount_limited 付费金额,ffms 付费号码
+ from wyx_1001_arpu;
+
+SELECT msisdn 号码,decode(user_status,'0','正常','4','停机保号','5','欠费停机','8','强制停机','9','报停又欠费','10','单停','11','报停又单停',
+'24','申请预销户','25','欠费预销户','26','报停预销户','28','其它强制预销户','44','申请用户彻底销户','45','欠费彻底销户',
+'46','报停彻底销户','47','彻底销户','48','其它强制彻底销户','51','预开通','52','携号转移预销户','99','其他',user_status) 号码状态,
+decode(home_county,701,'新罗',702,'漳平',703,'永定',704,'上杭',705,'武平',707,'连城',706,'长汀',home_county) 归属,to_char(join_date,'yyyymmdd') 开打时间,
+brand_id 套餐编码,name 套餐 ,call_town_desc 归属乡镇,region_desc 归属片区,
+djtime 登记时间,org_id 登记机构号,staff_msisdn 登记号码,org_name 渠道名称,
+sf4G 是否4G客户,sf38 是否38以上套餐,sf58 是否58以上套餐,jf 新入网积分,
+pq 渠道归属片区,sfzdqd 是否重点渠道,sflsqd 是否连锁渠道,sfzd 重点渠道,join_channel 批销渠道编码,pxqd 批销渠道,djtime852 登记时间,org_id852 登记机构号,staff_msisdn852 登记号码,
+sfkd 是否不限量,sfbxljbb 是否不限量基本包,sfbxlkxb 是否不限量可选包,
+sfldtx 是否来电提醒,sfcy 是否彩印,sfcl 是否彩铃,sfmgth 是否咪咕特会,qdpq 片区,wg 网格,to_char(join_date,'yyyymm') 开打月份,sfjtw 是否家庭网,sfdxll 是否定向流量,
+join_time 开打时间,djtime1 新入网登记时间date,sf88 是否88以上套餐,basic_fee 基础套餐费,country_code 行政村编码,country_name 行政村,djtime639 登记时间639,sfbff 是否被付费,amount_limited 付费金额,ffms 付费号码
+ from wyx_1001_arpu;
+
+
+alter table wyx_1001_arpu add comp_net_type number;
+update wyx_1001_arpu a set comp_net_type=0000;
+
+alter table wyx_1001_arpu add last_call_time date;
+alter table wyx_1001_arpu add(zj number,cnt number);
+alter table wyx_1001_arpu add first_fmcc_msisdn number;
+drop table wyx_1001_arpu_1;
+create table wyx_1001_arpu_1 as select sum_date,msisdn,join_date,comp_net_type,home_county,home_town,call_town_desc,region_desc,zj,cnt,last_call_time,first_fmcc_msisdn,user_status,
+brand_id 套餐编码,name 套餐,djtime 登记时间,org_id 登记机构号,staff_msisdn 登记号码,org_name 渠道名称,
+pq 渠道归属片区,sfzdqd 是否重点渠道,sflsqd 是否连锁渠道,sfzd 重点渠道,join_channel 批销渠道编码,pxqd 批销渠道,djtime852 登记时间852,org_id852 登记机构号852,staff_msisdn852 登记号码852,
+sfbxl 是否不限量,sfbxljbb 是否不限量基本包,sfbxlkxb 是否不限量可选包,
+sfldtx 是否来电提醒,sfcy 是否彩印,sfcl 是否彩铃,sfmgth 是否咪咕特会
+from wyx_1001_arpu;
+
+
+
+
+drop table wyx_1001_arpu;
+create table wyx_1001_arpu  storage(initial 3m)as
+select sum_Date,msisdn,home_county,first_call_time,recall_time,comp_net_type,last_call_time,first_fmcc_msisdn
+from sjy.Ft_mid_comp_user_daily where sum_date=to_char(sysdate-1,'yyyymmdd')  and nvl(to_char(recall_time,'yyyymm'),to_char(first_call_time,'yyyymm'))=to_char(sysdate,'yyyymm');
+create index i_wyx_1001_arpu on wyx_1001_arpu(msisdn);
+update wyx_1001_arpu a set a.first_call_time=recall_time where recall_time is not null;
+commit;
+alter table wyx_1001_arpu add(zj number,cnt number);
+create table  linshi storage(initial 5m)as
+select a.msisdn,a.Voc_Pcall_Dur60,a.Voc_Pcall_cnt from sjy.Ft_mid_comp_consume_daily a
+where a.sum_date=to_char(sysdate-1,'yyyymmdd');
+create index linshi on linshi(msisdn);
+
+update wyx_1001_arpu a set (zj,cnt)=(select Voc_Pcall_Dur60,Voc_Pcall_cnt from linshi b where a.msisdn=b.msisdn);
+ 
+drop table linshi;
+---select * from sjy.tb_cfg_town_cell
+
+--归属乡镇 
+create table wyx_1001_arpu_hometown storage(initial 3m)as
+select msisdn,Home_Town
+from sjy.FT_MID_COMP_TOWN_DAILY where sum_date=to_char(sysdate-1,'yyyymmdd');
+create index i_wyx_1001_arpu_hometown on wyx_1001_arpu_hometown(msisdn);
+
+alter table wyx_1001_arpu add home_town number(10);
+update wyx_1001_arpu a set a.home_town=(select b.home_town from wyx_1001_arpu_hometown b where a.msisdn=b.msisdn);
+commit;
+
+create index i_wyx_1001_arpu_hometown_1 on wyx_1001_arpu_hometown(home_town);
+alter table wyx_1001_arpu add town_name varchar2(200);
+drop table wyx_1001_arpu_hometown;
+alter table wyx_1001_arpu add (region_desc varchar2(100));
+create table wyx_1001_arpu_town_name as select call_town,call_town_desc,region_desc from sjy.dim_home_town
+where call_town in (select home_town from wyx_1001_arpu);
+
+create index i_wyx_1001_arpu_town_name on wyx_1001_arpu_town_name(call_town);
+update wyx_1001_arpu a set (a.town_name,a.region_desc)=(select b.call_town_desc,b.region_desc from wyx_1001_arpu_town_name b where a.home_town=b.call_town);
+commit;
+drop table wyx_1001_arpu_town_name;
+
+
+
+select msisdn 手机号码,to_char(first_call_time,'yyyymmdd') 开打日期,to_char(first_call_time,'yyyymm') 开打月份,decode(comp_net_type,1001,'电信小灵通',1002,'电信',2002,'联通',2001,'联通',3001,'联通',3002,'电信',4002,'铁通固网') 运营商含小灵通,
+decode(comp_net_type,1001,'电信',1002,'电信',2002,'联通',2001,'联通',3001,'联通',3002,'电信',4002,'铁通固网') 运营商,
+cnt 本月与移动号码通话次数,home_town 乡镇编码,town_name 属乡镇,to_char(last_call_time,'yyyymmdd') 最近一次过网日期,to_char(last_call_time,'yyyymm') 最近一次过网月份,
+zj 本月过网移动分钟数,cnt,first_fmcc_msisdn 第一次过网移动的移动号码,home_county 归属,region_desc 归属片区,first_call_time 开打日期date,last_call_time 最近一次过网日期date
+ from wyx_1001_arpu
+
+-----------------
+
+
+
+ where home_county=706;
+alter table wyx_1001_arpu add (user_status number);
+alter table wyx_1001_arpu add (djtime varchar2(1000),org_id number(15),staff_msisdn number);
+alter table wyx_1001_arpu add (org_name varchar2(1000));
+alter table wyx_1001_arpu add sf4G number;
+alter table wyx_1001_arpu add (sf58 number(10),sf38 number(10));
+alter table wyx_1001_arpu add jf number(15);
+alter table wyx_1001_arpu add (pq varchar2(100),sfzdqd number(5),sflsqd number(5));
+alter table wyx_1001_arpu add (sfzd number(5));
+alter table wyx_1001_arpu add (pxqd varchar2(1000));
+alter table wyx_1001_arpu add (sfbxl number(5),sfbxljbb number(5),sfbxlkxb number(5));
+alter table wyx_1001_arpu add (sfldtx number(5),sfcy number(5),sfcl number(5),sfmgth number(5));
+alter table wyx_1001_arpu add join_channel number(15);
+alter table wyx_1001_arpu add (djtime852 varchar2(1000),org_id852 number(15),staff_msisdn852 number);
+alter table wyx_1001_arpu add name varchar2(1000);
+alter table wyx_1001_arpu add brand_id number;
+
+drop table wyx_1001_arpu_2;
+
+create table wyx_1001_arpu_2 as select sum_date,msisdn,first_call_time,comp_net_type,home_county,home_town,town_name  call_town_desc,region_desc,zj,cnt,last_call_time,first_fmcc_msisdn,user_status,
+brand_id 套餐编码,name 套餐,djtime 登记时间,org_id 登记机构号,staff_msisdn 登记号码,org_name 渠道名称,
+pq 渠道归属片区,sfzdqd 是否重点渠道,sflsqd 是否连锁渠道,sfzd 重点渠道,join_channel 批销渠道编码,pxqd 批销渠道,djtime852 登记时间852,org_id852 登记机构号852,staff_msisdn852 登记号码852,
+sfbxl 是否不限量,sfbxljbb 是否不限量基本包,sfbxlkxb 是否不限量可选包,
+sfldtx 是否来电提醒,sfcy 是否彩印,sfcl 是否彩铃,sfmgth 是否咪咕特会
+from wyx_1001_arpu;
+
+drop table wyx_1001_arpu_3;
+create table wyx_1001_arpu_3  as select * from wyx_1001_arpu_1 
+union 
+select * from wyx_1001_arpu_2;
+
+select * from wyx_1001_arpu_3;
+select sum_date 统计时间,msisdn 号码,to_char(join_date,'yyyymmdd') 开打时间,to_char(join_date,'yyyymm') 开打月份,decode(comp_net_type,1001,'电信小灵通',1002,'电信',2002,'联通',2001,'联通',3001,'联通',3002,'电信',4002,'铁通固网',0,'移动') 运营商含小灵通,
+decode(comp_net_type,1001,'电信',1002,'电信',2002,'联通',2001,'联通',3001,'联通',3002,'电信',4002,'铁通固网',0,'移动') 运营商,
+home_county 归属,home_town 归属乡镇编码,call_town_desc  乡镇,region_desc 片区,zj 本月过网移动分钟数,cnt 本月通话次数,to_char(last_call_time,'yyyymmdd') 最近一次过网日期,to_char(last_call_time,'yyyymm') 最近一次过网月份,
+first_fmcc_msisdn 第一次过网移动的移动号码,decode(user_status,'0','正常','4','停机保号','5','欠费停机','8','强制停机','9','报停又欠费','10','单停','11','报停又单停',
+'24','申请预销户','25','欠费预销户','26','报停预销户','28','其它强制预销户','44','申请用户彻底销户','45','欠费彻底销户',
+'46','报停彻底销户','47','彻底销户','48','其它强制彻底销户','51','预开通','52','携号转移预销户','99','其他',user_status) 号码状态,
+套餐编码,套餐,登记时间,登记机构号,登记号码,渠道名称,
+渠道归属片区,是否重点渠道,是否连锁渠道,重点渠道,批销渠道编码,批销渠道,登记时间852,登记机构号852,登记号码852,
+是否不限量,是否不限量基本包,是否不限量可选包,
+是否来电提醒,是否彩印,是否彩铃,是否咪咕特会 
+from wyx_1001_arpu_3;
+
+
+
+
+
+
+
+
+
+-----------------------营销登记时间，机构号等，djtime 登记时间,org_id 登记机构号,staff_msisdn 登记号码,
+create table linshia as select *　from sjy.tb_csv_sales_points_detail where 
+business_id in (837,570,513,514,630,639,724,933,888,510,726)
+and HOME_CODE=597
+and change_inure_date<sysdate and CHANGE_EXPIRE_DATE>sysdate
+and register_month in (to_char(sysdate,'yyyymm'));  
+drop table wyx_1001_arpu;
+
+create table wyx_1001_arpu as select * from 
+(select user_id,user_msisdn,business_id,staff_msisdn,org_id,home_code,user_home_code,register_month,home_county,register_date,register_hms,create_oper_id,change_inure_date,CHANGE_EXPIRE_DATE,
+  row_number()over(partition by user_id,business_id,register_month order by register_date desc) paixu from linshia) where paixu=1;  -------剔除取消登记再登记数据
+create index iwyx_1001_arpu on wyx_1001_arpu(user_id,user_msisdn);
+create index iwyx_1001_arpu11 on wyx_1001_arpu(user_msisdn);
+create index iwyx_1001_arpu2 on wyx_1001_arpu(staff_msisdn);
+create index iwyx_1001_arpu3 on wyx_1001_arpu(org_id);
+
+
+drop table linshia;
+
+-------------------------渠道名称 org_name 渠道名称,
+create table linshi as select * from sjy.tb_reg_org where home_area=597 and change_inure_date<sysdate and change_expire_Date>sysdate and org_id in(select org_id from wyx_1001_arpu);
+create index ilinshi on linshi(org_id);
+alter table wyx_1001_arpu add (org_name varchar2(1000));
+update wyx_1001_arpu a set org_name=(select org_name from linshi where org_id=a.org_id );
+commit;
+drop table linshi;
+----------------------------------------------------------------------------------------------------
+------------------------------------SFrh 是否领取定向流量,
+
+
+create table linshi as select user_id,product_id from sjy.user_product
+where product_id in (1000640003,1000640003) and to_char(inure_time,'yyyymm')>201801 and expire_time>sysdate;
+create index ilinshi on linshi(user_id);------------数据业务临时表
+alter table wyx_1001_arpu add (sfrh number);
+update wyx_1001_arpu a set sfrh=1 where a.user_id in (select user_id from linshi);
+drop table linshi;
+
+------------------------------------入网时间  to_char(join_date,'yyyymmdd') 入网时间,user_status 用户状态,
+create table linshi as select user_id,join_Date,user_status,home_town from sjy.ft_mid_user_daily where sum_date=to_char(sysdate-1,'yyyymmdd') and join_date<sysdate;
+create index ilinshi on linshi(user_id);
+
+alter table wyx_1001_arpu add (join_date date,user_status number(5),home_town number(11),join_time date);
+update wyx_1001_arpu a set (join_Date,user_status,home_town,home_county,join_time)=(select join_date,user_status,home_town,home_county,join_time from linshi where user_id=a.user_id);
+
+
+
+drop table linshi;
+------------------------归属乡镇及乡镇片区   call_town_desc 归属乡镇,region_desc 归属片区,
+create index iwyx_1001_arpu_town on wyx_1001_arpu(home_town);
+
+ALTER TABLE wyx_1001_arpu ADD (region_desc VARCHAR2(1000),call_town_desc VARCHAR2(1000));
+create table linshi as select * from sjy.dim_home_town;
+create index ilinshi on linshi(call_town);
+update wyx_1001_arpu a
+set (call_town_desc,region_desc)=(select call_town_desc,region_desc from  linshi where a.home_town=CALL_TOWN);
+drop table linshi;
+commit;
+-------------------
+----update wyx_1001_arpu a set org_id=7062000 where staff_msisdn in (select msisdn from khjl);
+
+
+---------------------------------------------------
+create table linshi as select user_id,pkg_option_id from sjy.Ft_mid_package_option_daily
+where pkg_option_id in (37001003,37007001,37011001,37011002,37001005) and expire_date>sysdate and to_char(create_Date,'yyyymm')=to_char(sysdate,'yyyymm') and sum_Date=to_char(sysdate-1,'yyyymmdd');
+create index ilinshi on linshi(user_id);------------数据业务临时表
+alter table wyx_1001_arpu add (sfjtw number(5));
+update wyx_1001_arpu a set sfjtw=1 where a.user_id in (select user_id from linshi);
+
+drop table linshi;
+-----------------------------------------------------
+
+/*---------------------------------------------------
+create table linshi as select user_id,product_id from sjy.user_product
+where product_id in (1000560916,1000561814,1000561823,1000560924) and expire_time>sysdate;
+create index ilinshi on linshi(user_id);------------数据业务临时表
+alter table wyx_1001_arpu add (sfdxll number(5));
+update wyx_1001_arpu a set sfdxll=1 where a.user_id in (select user_id from linshi where product_id in (1000560916,1000561814)) and business_id=513;
+update wyx_1001_arpu a set sfdxll=1 where a.user_id in (select user_id from linshi where product_id in (1000561823,1000560924)) and business_id=514;
+
+drop table linshi;
+-----------------------------------------------------*/
+
+----------------------------------------------------
+
+create table linshi as select *  from sjy.tb_ser_user_bonus_deal_his where sale_id in (79015126,
+79015122,
+79015123,
+79015125,
+79015120,
+79015121,
+79015718,
+79015719,
+79015722,
+79015723,
+79015720,
+79015721,
+79015724,
+79015725,79015766,
+79015768,79015765,
+79015767) and to_char(create_date,'yyyymm')=to_char(sysdate,'yyyymm') and change_expire_date>sysdate
+and cancel_operator is null;
+create index ilinshi on linshi(user_id);------------数据业务临时表
+alter table wyx_1001_arpu add (sfdxll number(5));
+
+update wyx_1001_arpu a set sfdxll=1 where a.user_id in (select user_id from linshi where sale_id in (79015125,79015120,79015121,1,
+79015718,
+79015719,
+79015722,
+79015723,79015766,
+79015768
+)) and business_id=514;
+update wyx_1001_arpu a set sfdxll=1 where a.user_id in (select user_id from linshi where sale_id in (79015126,79015122,79015123,79015720,
+79015721,
+79015724,
+79015725,79015765,
+79015767
+)) and business_id=513;
+
+drop table linshi;
+
+
+---------------------------------------------------------------
+-------------是否和家相册
+create table linshi as  select *  from sjy.tb_ser_user_bonus_deal_his where sale_id in (79014894)
+ and to_char(create_date,'yyyymm')=to_char(sysdate,'yyyymm') and change_expire_date>sysdate
+and cancel_operator is null;
+create index ilinshi on linshi(user_id);------------数据业务临时表
+alter table wyx_1001_arpu add sfhjxc number(5);
+update wyx_1001_arpu a set sfhjxc=1 where a.user_id in (select user_id from linshi) and business_id=630;
+drop table linshi;
+
+--------------知道宽带账号取宽带相关 kdid 宽带ID，create_time 账号建立时间,
+
+create table linshi as select * from sjy.ft_mid_broadband_user_daily where sum_date=to_char(sysdate-1,'yyyymmdd') and user_status=0
+ and to_char(create_time,'yyyymm')=to_char(sysdate,'yyyymm') and payment_user_id in (select user_id from wyx_1001_arpu where business_id=570);
+create index ilinshi on linshi(user_name);
+create index ilinshi1 on linshi(user_id);
+create index ilinshi2 on linshi(payment_user_id);
+
+alter table wyx_1001_arpu add (kdid number(15),sfkd number(5));
+update wyx_1001_arpu a set kdid=(select max(user_id) from linshi where payment_user_id=a.user_id); ----宽带id
+update wyx_1001_arpu a set sfkd=1 where kdid in (select user_id from linshi); ----宽带id
+
+alter table wyx_1001_arpu add (create_time date,finish_time date);----账号建立时间
+update wyx_1001_arpu a set (create_time,finish_time)=(select create_time,finish_time from linshi where user_id=a.kdid);
+
+drop table linshi;
+
+
+SELECT user_msisdn 号码,
+decode(home_county,701,'新罗',702,'漳平',703,'永定',704,'上杭',705,'武平',707,'连城',706,'长汀',home_county) 归属,business_id 登记指令,to_char(register_date,'yyyymmdd') 登记时间,org_id 登记机构号,staff_msisdn 登记号码,
+org_name 渠道名称,sfjtw 是否办理家庭网,sfkd 是否竣工,to_char(create_time,'yyyymmdd') 账号建立时间,to_char(finish_time,'yyyymmdd') 账号竣工时间,
+register_date 登记时间date,register_hms 具体登记时间,join_time 入网时间date,create_time 账号建立时间date,finish_time 账号竣工时间date,
+sfdxll 是否定向流量,sfhjxc 是否开通和家相册
+from wyx_1001_arpu where business_id=513 and home_county=706;
+
+
+SELECT user_msisdn 号码,
+decode(home_county,701,'新罗',702,'漳平',703,'永定',704,'上杭',705,'武平',707,'连城',706,'长汀',home_county) 归属,business_id 登记指令,to_char(register_date,'yyyymmdd') 登记时间,org_id 登记机构号,staff_msisdn 登记号码,
+org_name 渠道名称,sfrh 是否融合,to_char(join_date,'yyyymmdd') 入网时间,user_status 用户状态, call_town_desc 归属乡镇,region_desc 归属片区
+from wyx_1001_arpu where business_id in (513,514,732,507) and home_county=706;
+
