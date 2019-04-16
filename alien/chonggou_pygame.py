@@ -2,6 +2,7 @@ import pygame
 #from pygame.sprite import Group
 import sys
 from ship import Ship
+from alien import Alien
 import alien
 from settings import Setting
 import game_function as gf
@@ -17,11 +18,17 @@ def run_game():
 	pygame.display.set_caption("外星人")
 	ship = Ship(ai_setting,screen)
 	bullets = pygame.sprite.Group()
-	alien = Alien(ai_setting,screen)
+	aliens = pygame.sprite.Group()
 	"""通过ship模块实例化飞船"""
+	gf.create_fleet(ai_setting,screen,aliens)
 	while True:
 		"""游戏主循环，监控游戏的事件及刷新屏幕交给两个函数"""
 		gf.check_event(ai_setting,screen,ship,bullets)
 
-		gf.update_screen(ai_setting,screen,ship,bullets,alien)
+		gf.update_screen(ai_setting,screen,ship,bullets,aliens)
 run_game()
+
+
+
+
+
