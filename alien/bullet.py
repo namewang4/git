@@ -17,12 +17,16 @@ class Bullet(Sprite):
 		self.y = float(self.rect.y)
 		self.color = ai_setting.bullet_color
 		self.speed_factor = ai_setting.bullet_speed_factor
+		self.xx = 0
 		
-	def update(self,bullets,ai_setting):
+	def update(self,bullets):
 		"""通过更新self.y展现向上移动子弹"""
 		self.y -= self.speed_factor
 		self.rect.y = self.y
-		self.rect.x = math.sin(self.y*0.001) * 100 + self.a - ai_setting.bullet_width * 0.5
+		
+		
+		self.rect.x = math.sin(self.xx) * 100 + self.a
+		self.xx += 0.05
 		"""螺旋轨迹子弹"""
 		for bullet in bullets.copy():
 			if bullet.rect.bottom <= 0:

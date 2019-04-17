@@ -55,11 +55,16 @@ def update_screen(ai_setting,screen,ship,bullets,aliens):
 	screen.fill(ai_setting.bg_color)
 	ship.update()
 	ship.blitme()
-	aliens.draw(screen)
-	bullets.update(bullets,ai_setting)
+
+	bullets.update(bullets)
 	for bullet in bullets.sprites():
 		bullet.draw_bullet()
 	pygame.display.flip()
+	
+	aliens.draw(screen)
+	"""在屏幕上画出外星飞船群"""
+	aliens.update()
+	"""更新飞船位置"""
 	
 	
 # def create_fleet(ai_setting,screen,aliens):
@@ -88,19 +93,40 @@ def get_number_aliens_x(ai_setting,alien_width):
 	number_aliens_x = int(available_space_x/(2 * alien_width))
 	"""一行可以放的外星人等于可用宽度除以两倍外星人宽度（间距为外星人宽带）"""
 	return number_aliens_x
+	
+def get_number_aliens_row(ai_setting,alien_height,ship_height):
+	"""获取屏幕可以容纳的行数将屏幕高度减去第一行外星人的上边距（外星人高度）、
+	飞船的高度以及最初外星人群与飞船的距离（外星人高度的两倍）： """
+	available_space_y = (ai_setting.screen_height - 
+		alien_height * 3 - ship_height)
+	
+	number_aliens_y = int(available_space_y/(2 * alien_height))
+	return number_aliens_y
 
-def create_alien(ai_setting,screen,aliens,alien_number):
+
+def create_alien(ai_setting,screen,aliens,alien_number,row_number):
+	#创建外星人函数
 	alien = Alien(ai_setting,screen)
 	alien_width = alien.rect.width
 	alien_x = alien_width + 2 *alien_width * alien_number
 	"""设定并记下外星人的 初始位置"""
 	alien.rect.x = alien_x
+	
+	alien_height = alien.rect.height
+	alien_y = alien_height + 2 * alien_height * row_number
+	"""计算外星人的y坐标，并记下初始位置"""
+	alien.rect.y = alien_y
 	aliens.add(alien)
 
-def create_fleet(ai_setting,screen,aliens):
+def create_fleet(ai_setting,screen,aliens,ship):
+	#创建一屏幕行外星人函数
 	alien = Alien(ai_setting,screen)
+	"""先初始化一个外星人用于获取相关数据"""
 	number_aliens_x = get_number_aliens_x(ai_setting,alien.rect.width)
+	"""使用函数获取一行外星人列数"""
+	number_rows = get_number_aliens_row(ai_setting,alien.rect.height,ship.rect.height)
+	"""使用函数获取外星人行数"""
 	
-	#创建一行外星人
-	for alien_number in range(number_aliens_x):
-		create_alien(ai_setting,screen,aliens,alien_number)
+	for row_number in range(number_rows):
+		for alien_number in range(number_aliens_x):
+			create_alien(ai_setting,screen,aliens,alien_number,row_number)

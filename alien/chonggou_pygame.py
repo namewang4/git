@@ -20,7 +20,7 @@ def run_game():
 	bullets = pygame.sprite.Group()
 	aliens = pygame.sprite.Group()
 	"""通过ship模块实例化飞船"""
-	gf.create_fleet(ai_setting,screen,aliens)
+	gf.create_fleet(ai_setting,screen,aliens,ship)
 	while True:
 		"""游戏主循环，监控游戏的事件及刷新屏幕交给两个函数"""
 		gf.check_event(ai_setting,screen,ship,bullets)

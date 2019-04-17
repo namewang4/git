@@ -10,7 +10,8 @@ class Alien(Sprite):
 		self.rect = self.image.get_rect()
 		self.screen_rect = screen.get_rect()
 		self.ai_setting = ai_setting
-		
+		self.speed_factor = ai_setting.alien_speed_factor
+		self.fleet_direction = ai_setting.fleet_direction
 		"""定下外星人位置都在屏幕的左上角附近"""
 		self.rect.x = self.rect.width
 		self.rect.y = self.rect.height
@@ -18,3 +19,6 @@ class Alien(Sprite):
 		self.x = float(self.rect.x)
 	def blitme(self):
 		self.screen.blit(self.image,self.rect)
+		
+	def update(self):
+		self.rect.x +=(self.speed_factor * self.fleet_direction)
