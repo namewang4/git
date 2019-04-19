@@ -23,12 +23,10 @@ def run_game():
 	gf.create_fleet(ai_setting,screen,aliens,ship)
 	while True:
 		"""游戏主循环，监控游戏的事件及刷新屏幕交给两个函数"""
-		gf.check_event(ai_setting,screen,ship,bullets)
+		gf.check_event(ai_setting,screen,ship,bullets,aliens)
 
 		gf.update_screen(ai_setting,screen,ship,bullets,aliens)
 run_game()
-
-
 
 
 

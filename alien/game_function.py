@@ -6,7 +6,7 @@ import settings
 import alien
 from alien import Alien
 """ship飞船实例统一为ship，设置统一为ai_setting"""
-def check_keydown_events(ai_setting,screen,event,ship,bullets):
+def check_keydown_events(ai_setting,screen,event,ship,bullets,aliens):
 	"""响应按键"""
 	if event.key == pygame.K_RIGHT:
 		ship.moving_right = True
@@ -22,7 +22,7 @@ def check_keydown_events(ai_setting,screen,event,ship,bullets):
 		"""飞船下移"""
 	elif event.key == pygame.K_SPACE:
 		if len(bullets) <=ai_setting.bullet_allows:
-			new_bullet = bullet.Bullet(ai_setting,screen,ship)
+			new_bullet = bullet.Bullet(ai_setting,screen,ship,aliens)
 			bullets.add(new_bullet)
 			"""新增子弹"""
 	elif event.key == pygame.K_q:
@@ -39,13 +39,13 @@ def check_keyup_events(event,ship):
 	elif event.key == pygame.K_DOWN:
 		ship.moving_down = False		
 
-def check_event(ai_setting,screen,ship,bullets):
+def check_event(ai_setting,screen,ship,bullets,aliens):
 	"""响应按键和鼠标事件"""
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
 			sys.exit()
 		elif event.type == pygame.KEYDOWN:
-			check_keydown_events(ai_setting,screen,event,ship,bullets)
+			check_keydown_events(ai_setting,screen,event,ship,bullets,aliens)
 		elif event.type == pygame.KEYUP:
 			check_keyup_events(event,ship)
 			
@@ -56,15 +56,19 @@ def update_screen(ai_setting,screen,ship,bullets,aliens):
 	ship.update()
 	ship.blitme()
 
-	bullets.update(bullets)
+	bullets.update(ai_setting,screen,ship,aliens,bullets)
 	for bullet in bullets.sprites():
 		bullet.draw_bullet()
-	pygame.display.flip()
+	
 	
 	aliens.draw(screen)
 	"""在屏幕上画出外星飞船群"""
-	aliens.update()
+	for alien in aliens.sprites():
+		alien.update()
+	
+	
 	"""更新飞船位置"""
+	pygame.display.flip()
 	
 	
 # def create_fleet(ai_setting,screen,aliens):
