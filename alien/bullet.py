@@ -36,6 +36,7 @@ class Bullet(Sprite):
 				print(len(bullets))
 		#检查是否有子弹击中了飞船，如果有删除飞船
 		collisions = pygame.sprite.groupcollide(bullets,aliens,False,True)
+		print(len(aliens))
 		if len(aliens) < 10 :
 			gf.create_fleet(ai_setting,screen,aliens,ship)
 

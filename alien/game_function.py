@@ -4,6 +4,7 @@ import ship
 import bullet
 import settings
 import alien
+from time import sleep
 from alien import Alien
 """ship飞船实例统一为ship，设置统一为ai_setting"""
 def check_keydown_events(ai_setting,screen,event,ship,bullets,aliens):
@@ -70,7 +71,21 @@ def update_screen(ai_setting,screen,ship,bullets,aliens):
 	"""更新飞船位置"""
 	pygame.display.flip()
 	
+def update_aliens_ship(ship,aliens):
+	"""检查飞船更新为止后是否与飞船有碰撞，如有则结束游戏"""
+	if pygame.sprite.spritecollideany(ship,aliens):
+		print("游戏结束")
+		sleep(0.5)
+	"""方法spritecollideany()接受两个实参：一个精灵和一个编组。
+	它检查编组是否有成员与精灵发生了碰撞，
+	并在找到与精灵发生了碰撞的成员后就停止遍历编组。在这里，它遍历编组aliens
+	，并返回它找到的第一个与飞船发生了碰撞的外星人。 如果没有发生碰撞，
+	spritecollideany()将返回None，因此Ø处的if代码块不会执行。如果找到了
+	与飞船发生碰撞的外星人，它就返回这个外星人，因此if代码块将执行：
+	打印“Ship hit!!!”（见）。（有外星人撞到飞船时，需要执行"""
 	
+
+
 # def create_fleet(ai_setting,screen,aliens):
 	# """创建外星人群初始代码，下面为重构后"""
 	# #创建一个外星人，并计算一行可容纳多少外星人

@@ -6,7 +6,7 @@ class Alien(Sprite):
 	def __init__(self,ai_setting,screen):
 		super().__init__()
 		self.screen = screen
-		self.image = pygame.image.load('D:\python\\alien\\alien2.bmp')
+		self.image = pygame.image.load('D:\python\\alien\\alien2.jpg')
 		self.rect = self.image.get_rect()
 		self.screen_rect = screen.get_rect()
 		self.ai_setting = ai_setting
@@ -40,6 +40,7 @@ class Alien(Sprite):
 		if self.rect.left <= 0:
 			self.fleet_direction *= -1
 			self.rect.y += self.fleet_drop_speed
+	
 
 	# def updata(self):
 		# # if alien.check_edges():

@@ -1,10 +1,12 @@
 import pygame
 import settings
-class Ship:
+from pygame.sprite import Sprite
+class Ship():
 	def __init__(self,ai_setting,screen):
+	
 		"""初始化飞船并设置其初始位置"""
 		self.screen = screen
-		self.image = pygame.image.load('D:\python\\alien\plane.bmp')
+		self.image = pygame.image.load('D:\python\\alien\plane.jpg')
 		self.rect = self.image.get_rect()
 		self.screen_rect = screen.get_rect()
 		self.ai_setting = ai_setting
@@ -33,6 +35,7 @@ class Ship:
 			self.centery += self.ai_setting.ship_speed_factor		
 		self.rect.centerx = self.centerx
 		self.rect.bottom = self.centery
+	
 	def blitme(self):
 		"""在指定位置绘制飞船"""
 		self.screen.blit(self.image,self.rect)

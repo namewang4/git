@@ -4,9 +4,15 @@ class Setting():
 		"""初始化游戏屏幕的设置，宽度，高度，背景色"""
 		self.screen_width = 1200
 		self.screen_height = 800
-		self.bg_color = (230,230,230)
+		self.bg_color = (130,230,230)
+		
+		
 		"""飞船的移动像素的相关"""
 		self.ship_speed_factor = 5
+		self.ship_limit = 5
+		
+		
+		
 		"""子弹的相关"""
 		self.bullet_speed_factor = 2
 		self.bullet_width = 300
