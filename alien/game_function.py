@@ -71,11 +71,23 @@ def update_screen(ai_setting,screen,ship,bullets,aliens):
 	"""更新飞船位置"""
 	pygame.display.flip()
 	
-def update_aliens_ship(ship,aliens):
+def ship_hit(ai_setting,screen,ship,aliens,bullets):
 	"""检查飞船更新为止后是否与飞船有碰撞，如有则结束游戏"""
 	if pygame.sprite.spritecollideany(ship,aliens):
-		print("游戏结束")
 		sleep(0.5)
+		"""发生碰撞后先暂停1秒，之后清空子弹和外星人飞船列表"""
+		aliens.empty()
+		bullets.empty()
+		
+		#创建新的一群外星人，飞船生命减一，重置飞船位置
+		create_fleet(ai_setting,screen,aliens,ship)
+		ship.ship_left -= 1
+		
+		ship.center_ship()
+		sleep(2)
+		
+		print("游戏结束")
+		
 	"""方法spritecollideany()接受两个实参：一个精灵和一个编组。
 	它检查编组是否有成员与精灵发生了碰撞，
 	并在找到与精灵发生了碰撞的成员后就停止遍历编组。在这里，它遍历编组aliens

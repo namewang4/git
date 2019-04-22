@@ -31,11 +31,12 @@ def run_game():
 	
 	while True:
 		"""游戏主循环，监控游戏的事件及刷新屏幕交给两个函数"""
+		gf.ship_hit(ai_setting,screen,ship,aliens,bullets)
+		"""检查飞船是否碰到飞机，碰到就结束游戏"""
 		gf.check_event(ai_setting,screen,ship,bullets,aliens)
 
 		gf.update_screen(ai_setting,screen,ship,bullets,aliens)
-		gf.update_aliens_ship(ship,aliens)
-		"""检查飞船是否碰到飞机，碰到就结束游戏"""
+		
 run_game()
 
 

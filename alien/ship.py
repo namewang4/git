@@ -6,10 +6,11 @@ class Ship():
 	
 		"""初始化飞船并设置其初始位置"""
 		self.screen = screen
-		self.image = pygame.image.load('D:\python\\alien\plane.jpg')
+		self.image = pygame.image.load('D:\python\\alien\plane.bmp')
 		self.rect = self.image.get_rect()
 		self.screen_rect = screen.get_rect()
 		self.ai_setting = ai_setting
+		self.ship_left = ai_setting.ship_limit
 		"""导入设置的飞船速度"""
 		
 		#将每搜飞船放在屏幕底部
@@ -35,6 +36,10 @@ class Ship():
 			self.centery += self.ai_setting.ship_speed_factor		
 		self.rect.centerx = self.centerx
 		self.rect.bottom = self.centery
+		
+	def center_ship(self):
+		self.centerx = self.screen_rect.centerx
+		self.centery = self.screen_rect.bottom
 	
 	def blitme(self):
 		"""在指定位置绘制飞船"""
