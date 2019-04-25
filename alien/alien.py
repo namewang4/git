@@ -3,7 +3,7 @@ import settings
 from pygame.sprite import Sprite
 
 class Alien(Sprite):
-	def __init__(self,ai_setting,screen):
+	def __init__(self,ai_setting,screen,game_stats):
 		super().__init__()
 		self.screen = screen
 		self.image = pygame.image.load('D:\python\\alien\\alien2.bmp')
@@ -29,7 +29,7 @@ class Alien(Sprite):
 			# self.fleet_direction *= -1
 			# self.rect.y += self.fleet_drop_speed
 			
-	def update(self):
+	def update(self,game_stats):
 		# if alien.check_edges():
 			# self.fleet_direction *= -1
 			# self.rect.y += self.fleet_drop_speed
@@ -40,6 +40,9 @@ class Alien(Sprite):
 		if self.rect.left <= 0:
 			self.fleet_direction *= -1
 			self.rect.y += self.fleet_drop_speed
+		if self.rect.bottom >= self.screen_rect.bottom:
+			game_stats.ship_over = True		
+			
 	
 
 	# def updata(self):

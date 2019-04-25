@@ -5,7 +5,9 @@ class GameStats():
 	def __init__(self,ai_setting):
 		"""初始化游戏的统计信息"""
 		self.ai_setting = ai_setting
+		self.ship_over = False
 		self.reset_stats()
+		
 		"""在这个游戏运行期间，我们只创建一个GameStats实例，
 		但每当玩家开始新游戏时，需要重置一些统计信息。为此，
 		我们在方法reset_stats()中初始化大部分统计信息，

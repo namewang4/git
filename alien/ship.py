@@ -10,7 +10,7 @@ class Ship():
 		self.rect = self.image.get_rect()
 		self.screen_rect = screen.get_rect()
 		self.ai_setting = ai_setting
-		self.ship_left = ai_setting.ship_limit
+		#self.ship_left = ai_setting.ship_limit
 		"""导入设置的飞船速度"""
 		
 		#将每搜飞船放在屏幕底部

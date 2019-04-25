@@ -50,43 +50,54 @@ def check_event(ai_setting,screen,ship,bullets,aliens):
 		elif event.type == pygame.KEYUP:
 			check_keyup_events(event,ship)
 			
-def update_screen(ai_setting,screen,ship,bullets,aliens):
+def update_screen(ai_setting,screen,ship,bullets,aliens,game_stats):
 	"""更新屏幕上的图片，并切换新屏幕，这里要用到三个参数"""
 	#每次循环时都重绘屏幕
 	screen.fill(ai_setting.bg_color)
-	ship.update()
+	
+	
 	ship.blitme()
 
-	bullets.update(ai_setting,screen,ship,aliens,bullets)
 	for bullet in bullets.sprites():
 		bullet.draw_bullet()
 	
 	
 	aliens.draw(screen)
 	"""在屏幕上画出外星飞船群"""
-	for alien in aliens.sprites():
-		alien.update()
+
 	
 	
 	"""更新飞船位置"""
 	pygame.display.flip()
 	
-def ship_hit(ai_setting,screen,ship,aliens,bullets):
-	"""检查飞船更新为止后是否与飞船有碰撞，如有则结束游戏"""
+def game_over(ai_setting,screen,ship,aliens,bullets,game_stats):
+	"""判断是否触发游戏结束"""
+	if game_stats.ship_over:
+		if game_stats.ship_left > 0:
+			ship_hit(ai_setting,screen,ship,aliens,bullets,game_stats)
+			game_stats.ship_over = False
+		else:
+			ship_hit(ai_setting,screen,ship,aliens,bullets,game_stats)
+def ship_ailen(ai_setting,screen,ship,aliens,bullets,game_stats):
+	"""检测飞船与外星人是否碰撞"""
 	if pygame.sprite.spritecollideany(ship,aliens):
-		sleep(0.5)
-		"""发生碰撞后先暂停1秒，之后清空子弹和外星人飞船列表"""
-		aliens.empty()
-		bullets.empty()
+		game_stats.ship_over = True
+	
+def ship_hit(ai_setting,screen,ship,aliens,bullets,game_stats):
+	"""结束游戏的相关操作"""
+	sleep(0.5)
+	"""发生碰撞后先暂停1秒，之后清空子弹和外星人飞船列表"""
+	aliens.empty()
+	bullets.empty()
 		
-		#创建新的一群外星人，飞船生命减一，重置飞船位置
-		create_fleet(ai_setting,screen,aliens,ship)
-		ship.ship_left -= 1
+	#创建新的一群外星人，飞船生命减一，重置飞船位置
+	create_fleet(ai_setting,screen,aliens,ship,game_stats)
+	game_stats.ship_left -= 1
 		
-		ship.center_ship()
-		sleep(2)
+	ship.center_ship()
+	sleep(1)
 		
-		print("游戏结束")
+	print("游戏结束")
 		
 	"""方法spritecollideany()接受两个实参：一个精灵和一个编组。
 	它检查编组是否有成员与精灵发生了碰撞，
@@ -135,9 +146,9 @@ def get_number_aliens_row(ai_setting,alien_height,ship_height):
 	return number_aliens_y
 
 
-def create_alien(ai_setting,screen,aliens,alien_number,row_number):
+def create_alien(ai_setting,screen,aliens,alien_number,row_number,game_stats):
 	#创建外星人函数
-	alien = Alien(ai_setting,screen)
+	alien = Alien(ai_setting,screen,game_stats)
 	alien_width = alien.rect.width
 	alien_x = alien_width + 2 *alien_width * alien_number
 	"""设定并记下外星人的 初始位置"""
@@ -149,9 +160,9 @@ def create_alien(ai_setting,screen,aliens,alien_number,row_number):
 	alien.rect.y = alien_y
 	aliens.add(alien)
 
-def create_fleet(ai_setting,screen,aliens,ship):
+def create_fleet(ai_setting,screen,aliens,ship,game_stats):
 	#创建一屏幕行外星人函数
-	alien = Alien(ai_setting,screen)
+	alien = Alien(ai_setting,screen,game_stats)
 	"""先初始化一个外星人用于获取相关数据"""
 	number_aliens_x = get_number_aliens_x(ai_setting,alien.rect.width)
 	"""使用函数获取一行外星人列数"""
@@ -160,4 +171,4 @@ def create_fleet(ai_setting,screen,aliens,ship):
 	
 	for row_number in range(number_rows):
 		for alien_number in range(number_aliens_x):
-			create_alien(ai_setting,screen,aliens,alien_number,row_number)
+			create_alien(ai_setting,screen,aliens,alien_number,row_number,game_stats)

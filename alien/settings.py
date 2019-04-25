@@ -9,7 +9,7 @@ class Setting():
 		
 		"""飞船的移动像素的相关"""
 		self.ship_speed_factor = 5
-		self.ship_limit = 5
+		self.ship_limit = 1
 		
 		
 		
@@ -23,7 +23,7 @@ class Setting():
 		
 		self.alien_speed_factor = 1
 		"""外星人横向速度"""
-		self.fleet_drop_speed = 30
+		self.fleet_drop_speed = 70
 		"""外星人群的下坠速度"""
 		"""外星人群的下坠速度"""
 		self.fleet_direction = 1
