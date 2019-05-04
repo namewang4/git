@@ -20,6 +20,6 @@ def get_params():
 	response = urllib.request.urlopen(request)
 	data = response.read().decode("utf-8")
 	print(request.headers)
-	with open("02header.html","w") as f:
-		f.write("data")
+	with open("02header.html","w",encoding="utf-8")as f:
+		f.write(data)
 get_params()
